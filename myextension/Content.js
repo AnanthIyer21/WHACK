@@ -1,5 +1,5 @@
 const button = document.createElement("button");
-button.innerText = "Download Images";
+button.innerText = "Download Post Images";
 button.style.position = "fixed";
 button.style.top = "10px";
 button.style.right = "10px";
@@ -15,12 +15,14 @@ button.onclick = () => {
   const images = document.querySelectorAll("img");
   images.forEach((img, index) => {
     const imageUrl = img.src;
-    const link = document.createElement("a");
-    link.href = imageUrl;
-    link.download = `instagram_image_${index}.jpg`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (img.width > 300 && imageUrl.includes("scontent")) {
+      const link = document.createElement("a");
+      link.href = imageUrl;
+      link.download = `instagram_post_${index}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   });
 };
 
