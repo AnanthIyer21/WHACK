@@ -1,29 +1,28 @@
-// Grab all visible images on the Instagram page
-console.log("It is working i think")
-const images = document.querySelectorAll("img");
+const button = document.createElement("button");
+button.innerText = "Download Images";
+button.style.position = "fixed";
+button.style.top = "10px";
+button.style.right = "10px";
+button.style.zIndex = "9999";
+button.style.padding = "8px 12px";
+button.style.background = "#3897f0";
+button.style.color = "white";
+button.style.border = "none";
+button.style.borderRadius = "4px";
+button.style.cursor = "pointer";
 
-images.forEach(img => {
-  const imageUrl = img.src;
-
-  // Send image URL to background.js for AI detection
-  chrome.runtime.sendMessage({ type: "analyzeImage", url: imageUrl }, response => {
-    if (response && response.isAI) {
-      // Create a badge to overlay on the image
-      const badge = document.createElement("div");
-      badge.innerText = "⚠️ AI Detected";
-      badge.style.position = "absolute";
-      badge.style.background = "rgba(255, 0, 0, 0.8)";
-      badge.style.color = "white";
-      badge.style.fontSize = "12px";
-      badge.style.padding = "2px 4px";
-      badge.style.borderRadius = "4px";
-      badge.style.zIndex = "9999";
-
-      // Ensure the image container is positioned
-      const container = img.parentElement;
-      container.style.position = "relative";
-      container.appendChild(badge);
-    }
+button.onclick = () => {
+  const images = document.querySelectorAll("img");
+  images.forEach((img, index) => {
+    const imageUrl = img.src;
+    const link = document.createElement("a");
+    link.href = imageUrl;
+    link.download = `instagram_image_${index}.jpg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   });
-});
+};
+
+document.body.appendChild(button);
 
