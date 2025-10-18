@@ -1,21 +1,26 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const container = document.getElementById("imageContainer");
-
-  chrome.storage.local.get(null, data => {
-    const keys = Object.keys(data).filter(key => key.startsWith("instagram_img_"));
-
-    if (keys.length === 0) {
-      container.innerText = "No images stored yet.";
-      return;
-    }
-
-    container.innerHTML = ""; // Clear loading text
-
-    keys.forEach(key => {
-      const base64 = data[key];
-      const img = document.createElement("img");
-      img.src = base64;
-      container.appendChild(img);
-    });
-  });
-});
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Instagram Image Viewer</title>
+    <style>
+      body {
+        width: 300px;
+        max-height: 500px;
+        overflow-y: auto;
+        font-family: sans-serif;
+        padding: 10px;
+      }
+      img {
+        max-width: 100%;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <h3>Stored Instagram Images</h3>
+    <div id="imageContainer">Loading images...</div>
+    <script src="popup.js"></script>
+  </body>
+</html>
