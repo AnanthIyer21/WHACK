@@ -1,94 +1,100 @@
-// This is the final version that removes the Hugging Face library import and uses the browser's native 'fetch' to call the API.
-// This code avoids 'import' related errors in the Chrome Service Worker.
+// Constants for the Hugging Face API
+const HF_API_URL = 'https://api-inference.huggingface.co/models/';
+const DEEPFAKE_MODEL = 'dima806/ai_vs_real_image_detection'; // The model for AI vs Real detection
 
-// Hugging Face Inference API endpoint
-const HF_API_URL = "https://api-inference.huggingface.co/models/";
-const DEEPFAKE_MODEL = "dima806/ai_vs_real_image_detection"; 
-
-// 1. Function to retrieve the token (async)
+/**
+ * Retrieves the Hugging Face API token from local storage.
+ * @returns {Promise<string>} The stored token.
+ */
 async function getHfToken() {
-    // Retrieve the token from chrome.storage.
-    const tokenResult = await chrome.storage.local.get('hf_token');
-    const token = tokenResult.hf_token;
-
-    if (!token) {
-        // If the token is missing, log an error message to the console and throw.
-        console.error("Hugging Face API Token not found. Please set your token in the extension options.");
-        // This message will appear in the inspect console.
-        throw new Error("Token Missing");
-    }
-    return token;
-}
-
-async function fetchAndAnalyzeImage(imageUrl, hfToken) {
-    const modelUrl = 'https://api-inference.huggingface.co/models/dima806/ai_vs_real_image_detection';
-
-    // 1. Send the request to the Hugging Face API.
-    //    The Hugging Face API can process the image URL received as a JSON payload.
-    const response = await fetch(modelUrl, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${hfToken}`,
-            'Content-Type': 'application/json' 
-        },
-        // **IMPORTANT:** Send the URL itself, without converting the image to BASE64.
-        body: JSON.stringify({
-            inputs: imageUrl
-        })
+    return new Promise((resolve, reject) => {
+        chrome.storage.local.get('hf_token', (result) => {
+            if (result.hf_token) {
+                resolve(result.hf_token);
+            } else {
+                reject('Hugging Face API Token not found.');
+            }
+        });
     });
-
-    if (hfResponse.status === 401) {
-        throw new Error("Authentication failed (401). Check your Hugging Face API Token.");
-    }
-
-    if (!hfResponse.ok) {
-        const errorText = await hfResponse.text();
-        throw new Error(`API call failed: ${hfResponse.status} - ${errorText}`);
-    }
-
-    // c. Receive the JSON response
-    const hfResult = await hfResponse.json();
-    
-    console.log(`[Background] Hugging Face Result for image ${imgIndex}:`, hfResult);
-
-    // Return the prediction with the highest score from the image classification results.
-    return hfResult[0]; 
 }
 
-// 3. Listener for messages received from the Content Script
+/**
+ * Sends the image URL to the Hugging Face API for analysis.
+ * This method delegates image downloading to the HF server (URL-based analysis),
+ * thereby bypassing CORS issues.
+ * @param {string} imageUrl The Instagram image URL.
+ * @param {string} hfToken The Hugging Face API token.
+ * @returns {Promise<Array | null>} Analysis result array or null if failed.
+ */
+async function fetchAndAnalyzeImage(imageUrl, hfToken) {
+    const modelUrl = `${HF_API_URL}${DEEPFAKE_MODEL}`;
+
+    try {
+        // Send the request to the Hugging Face API with the image URL in the body.
+        const response = await fetch(modelUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${hfToken}`,
+                'Content-Type': 'application/json' 
+            },
+            body: JSON.stringify({
+                inputs: imageUrl,
+                options: {
+                    wait_for_model: true
+                }
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`API failed (${response.status}). Response: ${errorText.substring(0, 100)}...`);
+        }
+
+        const result = await response.json();
+        return result;
+
+    } catch (error) {
+        console.error("[Background] Error during analysis:", error.message);
+        throw new Error(`Analysis failed: ${error.message}`);
+    }
+}
+
+/**
+ * Handles messages from the content script, orchestrating the analysis process.
+ */
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    
-    if (request.action === "processImage") {
-        
-        async function runAnalysis() {
-            const { imageUrl, imgIndex } = request;
-            console.log(`[Background] Starting analysis for image ${imgIndex}: ${imageUrl}`);
-
+    // We must return true to indicate that we will send the response asynchronously.
+    if (request.action === "ANALYZE_IMAGE") {
+        (async () => {
             try {
-                // Run the analysis
-                const prediction = await fetchAndAnalyzeImage(imageUrl, imgIndex);
+                const hfToken = await getHfToken();
+                console.log(`[Background] Starting analysis for image ${request.imgIndex}...`);
+                
+                // Fetch and analyze the image via URL
+                const hfResult = await fetchAndAnalyzeImage(request.imageUrl, hfToken);
 
-                // Return the result
+                console.log(`[Background] Hugging Face Result for image ${request.imgIndex}:`, hfResult);
+
+                // Send successful result back to content.js
                 sendResponse({ 
                     success: true, 
-                    imgIndex: imgIndex,
-                    prediction: prediction 
+                    result: hfResult,
+                    imgIndex: request.imgIndex
                 });
 
             } catch (error) {
-                console.error("[Background] Error during analysis:", error);
-                
-                // Return the error message
+                // Send error message back to content.js
+                console.error(`[Background] Failed to analyze image ${request.imgIndex}:`, error.message);
                 sendResponse({ 
                     success: false, 
-                    imgIndex: imgIndex,
-                    error: error.message || "Unknown error during AI inference."
+                    error: error.message || 'Unknown analysis error.',
+                    imgIndex: request.imgIndex
                 });
             }
-        }
-
-        runAnalysis();
-        // Return true to indicate that sendResponse will be called asynchronously.
+        })();
         return true; 
     }
 });
+
+// Initial setup to confirm Service Worker is active
+console.log('[Background] Service Worker Initialized.');

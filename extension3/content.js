@@ -43,40 +43,47 @@ postImages.forEach((img, index) => {
             const item = processingMap.get(index);
             if (!item) return;
 
-            // Remove the 'Analyzing...' overlay
-            item.overlayElement.remove();
-            processingMap.delete(index);
-
+            // Note: Cleanup is handled at the end of the callback (step 4) to ensure it runs even on error.
+            
             // --- 3. Receive prediction and display result ---
             if (response && response.success) {
-                const prediction = response.prediction;
-                console.log(`[Content.js] Image ${index} is predicted as: ${prediction.label} (${(prediction.score * 100).toFixed(2)}%)`);
-                
-                // Determine color and label
-                const isFake = prediction.label.toLowerCase().includes('fake') || prediction.label.toLowerCase().includes('manipulated');
-                const badgeColor = isFake ? 'red' : '#1abc9c'; // Green for Real, Red for Fake
-                const badgeText = isFake ? `FAKE (${(prediction.score * 100).toFixed(0)}%)` : `REAL (${(prediction.score * 100).toFixed(0)}%)`;
+                // *** CRITICAL FIX: Access response.result (the array) and use its first element. ***
+                const prediction = (response.result && response.result.length > 0) ? response.result[0] : null;
 
-                // Create a result badge
-                const resultBadge = document.createElement("div");
-                resultBadge.textContent = badgeText;
-                resultBadge.style.position = "absolute";
-                resultBadge.style.bottom = "10px";
-                resultBadge.style.right = "10px";
-                resultBadge.style.backgroundColor = badgeColor;
-                resultBadge.style.color = "white";
-                resultBadge.style.padding = "5px 10px";
-                resultBadge.style.borderRadius = "5px";
-                resultBadge.style.zIndex = "9999";
-                resultBadge.style.fontSize = "12px";
-                
-                item.imgElement.parentElement.appendChild(resultBadge);
+                if (prediction) {
+                    console.log(`[Content.js] Image ${index} is predicted as: ${prediction.label} (${(prediction.score * 100).toFixed(2)}%)`);
+                    
+                    // Determine color and label
+                    const isFake = prediction.label.toLowerCase().includes('fake') || prediction.label.toLowerCase().includes('manipulated');
+                    const badgeColor = isFake ? 'red' : '#1abc9c'; // Green for Real, Red for Fake
+                    const badgeText = isFake ? `FAKE (${(prediction.score * 100).toFixed(0)}%)` : `REAL (${(prediction.score * 100).toFixed(0)}%)`;
+
+                    // Create a result badge
+                    const resultBadge = document.createElement("div");
+                    resultBadge.textContent = badgeText;
+                    resultBadge.style.position = "absolute";
+                    resultBadge.style.bottom = "10px";
+                    resultBadge.style.right = "10px";
+                    resultBadge.style.backgroundColor = badgeColor;
+                    resultBadge.style.color = "white";
+                    resultBadge.style.padding = "5px 10px";
+                    resultBadge.style.borderRadius = "5px";
+                    resultBadge.style.zIndex = "9999";
+                    resultBadge.style.fontSize = "12px";
+                    
+                    item.imgElement.parentElement.appendChild(resultBadge);
+                } else {
+                     console.error(`[Content.js] Image ${index} failed analysis: Result was empty.`);
+                }
                 
             } else if (response && response.error) {
                 console.error(`[Content.js] Error for image ${index}:`, response.error);
                 // Display error message badge
                 const errorBadge = document.createElement("div");
-                errorBadge.textContent = "Error: " + response.error.substring(0, 20) + "...";
+                // Limit error message length for display
+                const displayError = response.error.length > 50 ? response.error.substring(0, 50) + "..." : response.error;
+                
+                errorBadge.textContent = "Error: " + displayError;
                 errorBadge.style.backgroundColor = 'orange';
                 errorBadge.style.color = 'white';
                 errorBadge.style.padding = "5px";
@@ -85,8 +92,29 @@ postImages.forEach((img, index) => {
                 errorBadge.style.top = "10px";
                 errorBadge.style.left = "10px";
                 errorBadge.style.zIndex = "9999";
+                errorBadge.style.fontSize = "12px";
+                
                 item.imgElement.parentElement.appendChild(errorBadge);
+            } else {
+                 console.error(`[Content.js] Image ${index} failed: Unexpected response structure.`);
+                 // Display generic error badge if structure is invalid
+                 const errorBadge = document.createElement("div");
+                 errorBadge.textContent = "Error: Unknown response";
+                 errorBadge.style.backgroundColor = 'red';
+                 errorBadge.style.color = 'white';
+                 errorBadge.style.padding = "5px";
+                 errorBadge.style.borderRadius = "5px";
+                 errorBadge.style.position = "absolute";
+                 errorBadge.style.top = "10px";
+                 errorBadge.style.left = "10px";
+                 errorBadge.style.zIndex = "9999";
+                 errorBadge.style.fontSize = "12px";
+                 item.imgElement.parentElement.appendChild(errorBadge);
             }
+            
+            // --- 4. Cleanup: Remove the 'Analyzing...' overlay and clear the map entry ---
+            item.overlayElement.remove();
+            processingMap.delete(index);
         });
     }
 });
