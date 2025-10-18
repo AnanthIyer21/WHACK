@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Instagram Greyout Viewer",
+  "version": "1.0",
+  "description": "Greys out Instagram images and allows viewing saved images.",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://www.instagram.com/*"],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "icons": {
+    "128": "icon.png"
+  },
+  
+  "name": "Extension2.0",
+
+  "permissions": [
+    "storage"
+  ]
+}
+
+
