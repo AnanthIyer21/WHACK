@@ -1,28 +1,47 @@
-// Grab all visible images on the Instagram page
 const images = document.querySelectorAll("img");
 
-images.forEach(img => {
+// Filter and store images to download
+const imagesToDownload = [];
+images.forEach((img, index) => {
   const imageUrl = img.src;
 
-  // Send image URL to background.js for AI detection
-  chrome.runtime.sendMessage({ type: "analyzeImage", url: imageUrl }, response => {
-    if (response && response.isAI) {
-      // Create a badge to overlay on the image
-      const badge = document.createElement("div");
-      badge.innerText = "⚠️ AI Detected";
-      badge.style.position = "absolute";
-      badge.style.background = "rgba(255, 0, 0, 0.8)";
-      badge.style.color = "white";
-      badge.style.fontSize = "12px";
-      badge.style.padding = "2px 4px";
-      badge.style.borderRadius = "4px";
-      badge.style.zIndex = "9999";
+  // Filter: only large post images from Instagram CDN
+  if (img.width > 300 && imageUrl.includes("scontent")) {
+    imagesToDownload.push({ img, imageUrl, index });
 
-      // Ensure the image container is positioned
-      const container = img.parentElement;
-      container.style.position = "relative";
-      container.appendChild(badge);
-    }
-  });
+    // Create grey overlay
+    const overlay = document.createElement("div");
+    overlay.style.position = "absolute";
+    overlay.style.top = "0";
+    overlay.style.left = "0";
+    overlay.style.width = img.width + "px";
+    overlay.style.height = img.height + "px";
+    overlay.style.backgroundColor = "rgba(128, 128, 128, 0.5)";
+    overlay.style.zIndex = "9998";
+
+    const container = img.parentElement;
+    container.style.position = "relative";
+    container.appendChild(overlay);
+  }
 });
+
+// Function to download with delay
+function downloadWithDelay(index) {
+  if (index >= imagesToDownload.length) return;
+
+  const { imageUrl, index: imgIndex } = imagesToDownload[index];
+  const link = document.createElement("a");
+  link.href = imageUrl;
+  link.download = `instagram_post_${imgIndex}.jpg`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  setTimeout(() => downloadWithDelay(index + 1), 500); // 500ms delay
+}
+
+// Start downloading after short initial delay
+setTimeout(() => downloadWithDelay(0), 1000);
+
+
 
