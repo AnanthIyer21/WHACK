@@ -6,10 +6,10 @@
   "permissions": ["storage", "activeTab", "scripting"],
   "content_scripts": [
     {
-      "matches": ["https://www.instagram.com/*"]
+      "matches": ["https://www.instagram.com/*"],
       "js": ["Content.js"]
     }
-    ]
+    ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": "icon.png"
