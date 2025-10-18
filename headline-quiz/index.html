@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fake or Real? Headline Quiz</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="quiz-container">
+    <h1>🧠 Fake or Real?</h1>
+    <div id="headline"></div>
+    <div class="buttons">
+      <button onclick="submitGuess('real')">Real</button>
+      <button onclick="submitGuess('fake')">Fake</button>
+    </div>
+    <div id="feedback"></div>
+    <div id="score"></div>
+    <button id="nextBtn" onclick="nextHeadline()">Next</button>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
