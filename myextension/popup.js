@@ -73,4 +73,12 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   });
+
+  // 🧪 Manual ping test
+  document.getElementById("testPing").addEventListener("click", () => {
+    chrome.runtime.sendMessage({ action: "ping" }, response => {
+      console.log("Ping response:", response);
+      alert("Ping sent to background");
+    });
+  });
 });

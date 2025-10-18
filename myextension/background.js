@@ -1,6 +1,8 @@
 import HF_TOKEN from "./config.js";
 import { InferenceClient } from "@huggingface/hub";
 
+console.log("[Background] Service worker loaded");
+
 const client = new InferenceClient({ accessToken: HF_TOKEN });
 const DEEPFAKE_MODEL = "umm-maybe/AI-image-detector";
 
