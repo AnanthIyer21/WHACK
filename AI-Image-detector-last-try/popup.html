@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Image Detector</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <style>
+        /* Add some basic styling here */
+        body { width: 300px; padding: 10px; }
+        #output { margin-top: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Analyze Image</h1>
+    <input type="file" id="imageUpload" accept="image/*">
+    <button id="analyzeBtn" disabled>Analyze</button>
+    <div id="output">Upload an image to check.</div>
+    
+    <script src="tf.min.js"></script> 
+    <script src="popup.js"></script>
+</body>
+</html>

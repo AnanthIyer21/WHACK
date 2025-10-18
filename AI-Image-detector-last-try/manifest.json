@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "AI Image Detector",
+  "version": "1.0",
+  "description": "Detects if an image is AI generated using a local model.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'" 
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["model.json", "*.bin"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
