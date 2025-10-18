@@ -2,11 +2,15 @@ from flask import Flask, jsonify
 import requests
 import os
 from dotenv import load_dotenv
+from flask_cors import CORS
+
+# Load environment variables from .env file
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app)
 
-# Load API keys from environment variables
+# Get API keys from environment
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
@@ -21,7 +25,7 @@ def home():
 @app.route("/headlines/real")
 def real_headlines():
     try:
-        url = f"https://newsapi.org/v2/top-headlines?country=gb&pageSize=5&apiKey={NEWS_API_KEY}"
+        url = f"https://newsapi.org/v2/top-headlines?language=en&pageSize=5&apiKey={NEWS_API_KEY}"
         response = requests.get(url)
         articles = response.json().get("articles", [])
         headlines = [a["title"] for a in articles if a.get("title")]
