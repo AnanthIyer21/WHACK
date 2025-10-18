@@ -1,21 +1,7 @@
-// Create a "Download Post Images" button
-const button = document.createElement("button");
-button.innerText = "Download Post Images";
-button.style.position = "fixed";
-button.style.top = "10px";
-button.style.right = "10px";
-button.style.zIndex = "9999";
-button.style.padding = "8px 12px";
-button.style.background = "#3897f0";
-button.style.color = "white";
-button.style.border = "none";
-button.style.borderRadius = "4px";
-button.style.cursor = "pointer";
-
-// Highlight and tag images to download
-const imagesToDownload = [];
 const images = document.querySelectorAll("img");
 
+// Filter and store images to download
+const imagesToDownload = [];
 images.forEach((img, index) => {
   const imageUrl = img.src;
 
@@ -33,26 +19,29 @@ images.forEach((img, index) => {
     overlay.style.backgroundColor = "rgba(128, 128, 128, 0.5)";
     overlay.style.zIndex = "9998";
 
-    // Ensure container is positioned
     const container = img.parentElement;
     container.style.position = "relative";
     container.appendChild(overlay);
   }
 });
 
-// Download logic triggered by button
-button.onclick = () => {
-  imagesToDownload.forEach(({ imageUrl, index }) => {
-    const link = document.createElement("a");
-    link.href = imageUrl;
-    link.download = `instagram_post_${index}.jpg`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  });
-};
+// Function to download with delay
+function downloadWithDelay(index) {
+  if (index >= imagesToDownload.length) return;
 
-document.body.appendChild(button);
+  const { imageUrl, index: imgIndex } = imagesToDownload[index];
+  const link = document.createElement("a");
+  link.href = imageUrl;
+  link.download = `instagram_post_${imgIndex}.jpg`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  setTimeout(() => downloadWithDelay(index + 1), 500); // 500ms delay
+}
+
+// Start downloading after short initial delay
+setTimeout(() => downloadWithDelay(0), 1000);
 
 
 
