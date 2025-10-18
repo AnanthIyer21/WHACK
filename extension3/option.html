@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hugging Face Token Settings</title>
+    <style>
+        body { font-family: 'Inter', sans-serif; padding: 20px; background-color: #f4f7f9; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        h1 { color: #2c3e50; font-size: 1.8em; margin-bottom: 20px; text-align: center; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #34495e; }
+        input[type="text"] { width: 100%; padding: 12px; margin-bottom: 20px; border: 2px solid #ddd; border-radius: 8px; box-sizing: border-box; transition: border-color 0.3s; }
+        input[type="text"]:focus { border-color: #1abc9c; outline: none; box-shadow: 0 0 5px rgba(26, 188, 156, 0.5); }
+        button { background-color: #1abc9c; color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 1em; width: 100%; transition: background-color 0.3s; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
+        button:hover { background-color: #16a085; }
+        #status { margin-top: 15px; padding: 10px; border-radius: 8px; text-align: center; font-weight: bold; }
+        .info-box { background-color: #ecf0f1; padding: 15px; border-left: 5px solid #3498db; border-radius: 8px; margin-bottom: 20px; font-size: 0.9em; color: #34495e; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Extension Settings</h1>
+        <div class="info-box">
+            Please enter your Hugging Face Access Token. This token is required for the extension to run the AI deepfake analysis model. You can generate a token on your Hugging Face profile page.
+        </div>
+        
+        <label for="hf_token">Hugging Face Access Token:</label>
+        <input type="text" id="hf_token" placeholder="Paste your HF Token here (e.g., hf_xxxxxxxxxxxxxx)">
+        
+        <button id="saveButton">Save Token</button>
+        <div id="status"></div>
+    </div>
+    
+    <script src="options.js"></script>
+</body>
+</html>
