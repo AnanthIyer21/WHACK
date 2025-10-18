@@ -15,7 +15,7 @@
   "content_scripts": [
     {
       "matches": ["https://www.instagram.com/*"],
-      "js": ["Content.js"]
+      "js": ["content.js"]
     }
   ],
   "action": {
@@ -26,5 +26,5 @@
     "service_worker": "background.js",
     "type": "module"
   },
-  "option_page": "options.html"
+  "option_page": "option.html"
 }

@@ -1,84 +1,136 @@
+// background.js - Service Worker: Acts as a proxy to fetch images (bypassing CORS) and runs the AI model.
+
 // NOTE: TensorFlow.js is loaded via an importScripts call at the top, which
 // is required for Service Workers when not using a bundler.
-// Since you cannot use a CDN in MV3, you must download the
-// tf.min.js and tf-layers.min.js files and place them in your extension root.
-
-// IMPORTANT: For simplicity and to avoid third-party bundling, we will use
-// the MINIMAL version of TF.js for the service worker.
-// Download the latest versions of: 
-// 1. https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.x.x/dist/tf.min.js
-// 2. https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-layers@4.x.x/dist/tf-layers.min.js
-// Place them in the root of your extension folder and rename them to
-// 'tf_core.js' and 'tf_layers.js' respectively.
-
 importScripts('tf_core.js', 'tf_layers.js');
 
+// --- Configuration Constants ---
 const MODEL_URL = 'tfjs_model/model.json';
-let model = null;
 const CACHE_KEY = 'processed_images_cache';
 const TILE_SIZE = 32;
 
-// --- TILING/INFERENCE CONFIGURATION (MATCHES YOUR LAST PYTHON SCRIPT) ---
+// --- TILING/INFERENCE CONFIGURATION ---
 const TILE_FAKE_THRESHOLD = 0.65; 
 const IMAGE_FAKE_PERCENTAGE = 0.05; 
-// ------------------------------------------------------------------------
+// ----------------------------------------
 
-// 1. Model Loading Function
+// Global State
+let model = null;
+
+// 1. Model Loading
 async function loadModel() {
-    if (model) {
+    if (model) return model;
+    try {
+        console.log('[SW] Loading TensorFlow model...');
+        // Load the model from the path relative to the extension root
+        model = await tf.loadLayersModel(chrome.runtime.getURL(MODEL_URL));
+        console.log('[SW] Model loaded successfully.');
         return model;
+    } catch (error) {
+        console.error('[SW] Failed to load model:', error);
+        return null;
     }
-    console.log("Loading AI detection model...");
-    // Use tf.loadLayersModel to load the model converted from Keras
-    model = await tf.loadLayersModel(chrome.runtime.getURL(MODEL_URL));
-    console.log("Model loaded successfully.");
-    return model;
 }
 
-// 2. The core Tiling and Prediction logic
-async function checkImageAI(imageDataUrl) {
-    await loadModel();
-    if (!model) return false;
-
-    // --- FIX IS HERE: Use createImageBitmap with the Data URL ---
-    // This allows the Service Worker to process the image data directly
-    const response = await fetch(imageDataUrl);
-    const blob = await response.blob();
+/**
+ * Converts a fetched image Blob into a TensorFlow-compatible tensor using OffscreenCanvas.
+ * @param {Blob} imageBlob The raw image data blob.
+ * @returns {tf.Tensor3D} The tensor ready for prediction.
+ */
+async function blobToTensor(imageBlob) {
+    const imageBitmap = await createImageBitmap(imageBlob);
     
-    // createImageBitmap is supported in Service Workers and is efficient
-    const imgBitmap = await createImageBitmap(blob);
-    // -----------------------------------------------------------
-
-    const { width, height } = imgBitmap;
-    
-    // Create an OffscreenCanvas to hold the image data
+    const { width, height } = imageBitmap;
     const canvas = new OffscreenCanvas(width, height);
     const ctx = canvas.getContext('2d');
     
-    // Draw the image bitmap onto the canvas
-    ctx.drawImage(imgBitmap, 0, 0); 
+    ctx.drawImage(imageBitmap, 0, 0);
     
-    // ... (rest of your tiling logic remains the same) ...
+    // Create tensor and normalize
+    return tf.tidy(() => {
+        let tensor = tf.browser.fromPixels(canvas, 3).toFloat().div(255.0);
+        
+        // Pad to ensure width and height are multiples of TILE_SIZE (32)
+        const targetWidth = Math.ceil(width / TILE_SIZE) * TILE_SIZE;
+        const targetHeight = Math.ceil(height / TILE_SIZE) * TILE_SIZE;
 
-    const tiles = [];
-    let strongFakeTiles = 0;
-
-    const pad_width = Math.ceil(width / TILE_SIZE) * TILE_SIZE;
-    // ... (rest of the tiling loop and logic remains the same) ...
+        if (targetWidth !== width || targetHeight !== height) {
+            // Use zero padding to reach the target size
+            const pad_w = targetWidth - width;
+            const pad_h = targetHeight - height;
+            
+            tensor = tensor.pad([
+                [0, pad_h], // padding for height
+                [0, pad_w], // padding for width
+                [0, 0]      // no padding for color channels
+            ]);
+        }
+        return tensor;
+    });
 }
 
-// 3. Message Listener from Content Script
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    // Only process requests when detection is enabled
-    if (request.type === "CHECK_IMAGE") {
+
+/**
+ * Runs the tiled AI inference on the pre-loaded image tensor.
+ * @param {tf.Tensor3D} imageTensor The tensor representing the image.
+ * @returns {boolean} True if the image is classified as fake, false otherwise.
+ */
+async function runTiledInference(imageTensor) {
+    if (!model) return false;
+
+    return tf.tidy(() => {
+        const [height, width] = imageTensor.shape;
+        let strongFakeTiles = 0;
         
-        // Check local storage for the cached result
+        const totalTiles = (width / TILE_SIZE) * (height / TILE_SIZE);
+        if (totalTiles === 0) return false;
+
+        for (let ty = 0; ty < height; ty += TILE_SIZE) {
+            for (let tx = 0; tx < width; tx += TILE_SIZE) {
+                // Slice the tile: [y_start, x_start, z_start], [y_size, x_size, z_size]
+                const tileTensor = imageTensor.slice(
+                    [ty, tx, 0], 
+                    [TILE_SIZE, TILE_SIZE, 3]
+                );
+                
+                // Add batch dimension: (1, 32, 32, 3)
+                const tileBatch = tileTensor.expandDims(0); 
+
+                // Prediction
+                const real_prob_tensor = model.predict(tileBatch);
+                const real_prob = real_prob_tensor.dataSync()[0]; 
+                const fake_prob = 1.0 - real_prob;
+                
+                if (fake_prob >= TILE_FAKE_THRESHOLD) {
+                    strongFakeTiles++;
+                }
+            }
+        }
+        
+        // Decision Logic
+        const fake_ratio = strongFakeTiles / totalTiles;
+        console.log(`[SW] Tiles processed: ${totalTiles}. Strong FAKE Tiles: ${strongFakeTiles}. Fake Ratio: ${fake_ratio.toFixed(2)}`);
+        
+        return fake_ratio >= IMAGE_FAKE_PERCENTAGE;
+    });
+}
+
+
+// 2. Main Message Listener
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    
+    // --- Detection Request (New: Fetch URL and Check) ---
+    if (request.type === "CHECK_IMAGE_URL") { 
+        
+        const { url } = request.payload; 
+
+        // Check cache first
         chrome.storage.local.get([CACHE_KEY], async (result) => {
             const cache = result[CACHE_KEY] || {};
-            const { url, imageData } = request.payload;
-
-            // 1. Check Cache
+            
+            // 1. Cache Check
             if (cache[url] !== undefined) {
+                console.log(`[SW] Cache hit for ${url}`);
                 sendResponse({ 
                     success: true, 
                     isFake: cache[url], 
@@ -87,11 +139,34 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 return;
             }
 
-            // 2. Run Model Inference
+            await loadModel();
+            if (!model) {
+                 sendResponse({ 
+                    success: false, 
+                    message: "AI Model failed to load." 
+                });
+                return;
+            }
+
+            // 2. Fetch Image Data (Service Worker acts as CORS proxy)
+            let isFake = false;
             try {
-                const isFake = await checkImageAI(imageData);
+                const fetchResponse = await fetch(url);
+                if (!fetchResponse.ok) {
+                    throw new Error(`Fetch failed: ${fetchResponse.status}`);
+                }
+                const imageBlob = await fetchResponse.blob();
                 
-                // 3. Update Cache
+                // 3. Convert Blob to Tensor
+                const imageTensor = await blobToTensor(imageBlob);
+                
+                // 4. Run Model Inference
+                isFake = await runTiledInference(imageTensor);
+                
+                // Dispose of the tensor to free memory
+                tf.dispose(imageTensor);
+                
+                // 5. Update Cache
                 cache[url] = isFake;
                 chrome.storage.local.set({ [CACHE_KEY]: cache });
 
@@ -100,26 +175,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     isFake: isFake,
                     cached: false 
                 });
+
             } catch (error) {
-                console.error("Model Prediction Error:", error);
+                console.error("[SW] Fetch or Model Prediction Error:", error);
                 sendResponse({ 
                     success: false, 
-                    message: error.message 
+                    message: `Could not process image data: ${error.message}` 
                 });
             }
         });
         
-        // MUST return true to indicate you will call sendResponse asynchronously
+        // IMPORTANT: Must return true for asynchronous sendResponse
         return true; 
-    }
-});
-
-// 4. State Listener (for the popup)
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.type === 'GET_STATE') {
-        chrome.storage.local.get('isDetectionEnabled', (data) => {
-            sendResponse({ isDetectionEnabled: !!data.isDetectionEnabled });
-        });
-        return true; 
-    }
+    } 
 });
