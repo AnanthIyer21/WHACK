@@ -37,11 +37,9 @@ function downloadWithDelay(index) {
   link.click();
   document.body.removeChild(link);
 
-  //setTimeout(() => downloadWithDelay(index + 1), 500); // 500ms delay
+  setTimeout(() => downloadWithDelay(index + 1), 500); // 500ms delay
 }
 
 // Start downloading after short initial delay
 setTimeout(() => downloadWithDelay(0), 1000);
-
-
 
