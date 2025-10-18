@@ -1,15 +1,21 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>My Extension</title>
-    <style>
-      body { width: 200px; font-family: sans-serif; }
-      button { margin-top: 10px; }
-    </style>
-  </head>
-  <body>
-    <h3>Hello!</h3>
-    <button id="changeColor">Change Page Color</button>
-    <script src="popup.js"></script>
-  </body>
-</html>
+document.addEventListener("DOMContentLoaded", () => {
+  const container = document.getElementById("imageContainer");
+
+  chrome.storage.local.get(null, data => {
+    const keys = Object.keys(data).filter(key => key.startsWith("instagram_img_"));
+
+    if (keys.length === 0) {
+      container.innerText = "No images stored yet.";
+      return;
+    }
+
+    container.innerHTML = ""; // Clear loading text
+
+    keys.forEach(key => {
+      const base64 = data[key];
+      const img = document.createElement("img");
+      img.src = base64;
+      container.appendChild(img);
+    });
+  });
+});
