@@ -3,7 +3,7 @@ from PIL import Image
 import torch
 
 # Load model and processor
-model_name = "oripress/ai-image-detector"
+model_name = "ai_vs_real_image_detection_model"
 processor = AutoProcessor.from_pretrained(model_name)
 model = AutoModelForImageClassification.from_pretrained(model_name)
 
