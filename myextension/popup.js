@@ -38,19 +38,25 @@ document.addEventListener("DOMContentLoaded", () => {
           imageUrl: imageUrl,
           imgIndex: i
         }, response => {
+          console.log("Response from background:", response);
+
           const wrapper = container.children[i];
-          const existingOverlay = wrapper.querySelector(".overlay");
-          if (existingOverlay) wrapper.removeChild(existingOverlay);
+          if (!wrapper) {
+            console.warn(`No wrapper found for image ${i}`);
+            return;
+          }
 
           const overlay = document.createElement("div");
           overlay.className = "overlay";
 
-          if (response?.success) {
+          if (response?.success && response.prediction) {
             const { label, score } = response.prediction;
             overlay.innerText = `${label} (${(score * 100).toFixed(1)}%)`;
-            overlay.style.backgroundColor = label.toLowerCase().includes("ai") ? "rgba(255,0,0,0.7)" : "rgba(0,128,0,0.7)";
+            overlay.style.backgroundColor = label.toLowerCase().includes("ai")
+              ? "rgba(255,0,0,0.7)"
+              : "rgba(0,128,0,0.7)";
           } else {
-            overlay.innerText = `Error: ${response?.error}`;
+            overlay.innerText = `Error: ${response?.error || "No response"}`;
             overlay.style.backgroundColor = "rgba(128,0,0,0.7)";
           }
 

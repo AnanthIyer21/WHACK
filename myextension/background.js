@@ -8,6 +8,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "processImage") {
     async function fetchAndAnalyzeImage() {
       const { imageUrl, base64, imgIndex } = request;
+      console.log(`[Background] Received image ${imgIndex}`);
 
       try {
         if (!HF_TOKEN || HF_TOKEN.length < 20 || !HF_TOKEN.startsWith("hf_")) {
@@ -30,6 +31,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           data: imageBlob,
         });
 
+        console.log(`[Background] Hugging Face Result:`, hfResult);
+
         if (!hfResult || !Array.isArray(hfResult) || hfResult.length === 0) {
           throw new Error("No prediction returned from Hugging Face.");
         }
@@ -41,6 +44,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
 
       } catch (error) {
+        console.error(`[Background] Error:`, error);
         sendResponse({
           success: false,
           imgIndex,
