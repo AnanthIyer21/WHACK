@@ -1,14 +1,10 @@
 const images = document.querySelectorAll("img");
 
-// Filter and store images to download
-const imagesToDownload = [];
+// Filter and store large post images
 images.forEach((img, index) => {
   const imageUrl = img.src;
 
-  // Filter: only large post images from Instagram CDN
   if (img.width > 300 && imageUrl.includes("scontent")) {
-    imagesToDownload.push({ img, imageUrl, index });
-
     // Create grey overlay
     const overlay = document.createElement("div");
     overlay.style.position = "absolute";
@@ -22,24 +18,20 @@ images.forEach((img, index) => {
     const container = img.parentElement;
     container.style.position = "relative";
     container.appendChild(overlay);
+
+    // Fetch image and store as base64
+    fetch(imageUrl)
+      .then(res => res.blob())
+      .then(blob => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64Data = reader.result;
+          const key = `instagram_img_${index}`;
+          chrome.storage.local.set({ [key]: base64Data }, () => {
+            console.log(`Stored ${key} in chrome.storage.local`);
+          });
+        };
+        reader.readAsDataURL(blob);
+      });
   }
 });
-
-// Function to download with delay
-function downloadWithDelay(index) {
-  if (index >= imagesToDownload.length) return;
-
-  const { imageUrl, index: imgIndex } = imagesToDownload[index];
-  const link = document.createElement("a");
-  link.href = imageUrl;
-  link.download = `instagram_post_${imgIndex}.jpg`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  setTimeout(() => downloadWithDelay(index + 1), 500); // 500ms delay
-}
-
-// Start downloading after short initial delay
-setTimeout(() => downloadWithDelay(0), 1000);
-
