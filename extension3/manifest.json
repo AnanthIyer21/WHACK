@@ -10,6 +10,7 @@
   ],
   "host_permissions": [
     "https://www.instagram.com/*",
+    "https://*.cdninstagram.com/*",
     "https://api-inference.huggingface.co/*"
   ],
   "content_scripts": [

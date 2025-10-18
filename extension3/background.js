@@ -20,27 +20,21 @@ async function getHfToken() {
     return token;
 }
 
-// 2. Core logic to fetch the image URL, send it to the API, and return the result.
-async function fetchAndAnalyzeImage(imageUrl, imgIndex) {
-    const HF_TOKEN = await getHfToken(); // Verify and retrieve the token
+async function fetchAndAnalyzeImage(imageUrl, hfToken) {
+    const modelUrl = 'https://api-inference.huggingface.co/models/dima806/ai_vs_real_image_detection';
 
-    // a. Fetch the image binary data (CORS bypass)
-    const res = await fetch(imageUrl);
-    if (!res.ok) {
-        throw new Error(`Failed to fetch image. HTTP status: ${res.status}`);
-    }
-    const imageBlob = await res.blob();
-    
-    // b. Directly send a fetch request to the Hugging Face Inference API
-    const apiEndpoint = `${HF_API_URL}${DEEPFAKE_MODEL}`;
-
-    const hfResponse = await fetch(apiEndpoint, {
+    // 1. Send the request to the Hugging Face API.
+    //    The Hugging Face API can process the image URL received as a JSON payload.
+    const response = await fetch(modelUrl, {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${HF_TOKEN}`,
-            // 'Content-Type': imageBlob.type // fetch automatically sets the Content-Type when sending a Blob.
+            'Authorization': `Bearer ${hfToken}`,
+            'Content-Type': 'application/json' 
         },
-        body: imageBlob
+        // **IMPORTANT:** Send the URL itself, without converting the image to BASE64.
+        body: JSON.stringify({
+            inputs: imageUrl
+        })
     });
 
     if (hfResponse.status === 401) {
