@@ -26,5 +26,5 @@
     "service_worker": "background.js",
     "type": "module"
   },
-  "option_page": "option.html"
+  "options_page": "options.html"
 }
