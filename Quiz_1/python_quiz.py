@@ -1,4 +1,55 @@
 import random
+import subprocess
+
+num_headlines = 5 #change this to however many you want
+
+topics = [
+    "technology", "politics", "space", "sports", "pop culture",
+    "animals", "science", "food", "fashion", "AI", "weather"
+]
+
+topic = random.choice(topics)
+
+prompt = f"""
+Generate {num_headlines} realistic-sounding fake news headlines about {topic}.
+Each headline should sound like it could appear in real news media, but it is fabricated.
+After each headline, provide a short explanation in parentheses why it is fake.
+Output each headline on a separate line, in the following format:
+Headline 1 (Explanation why this is fake)
+Headline 2 (Explanation why this is fake)
+...
+"""
+
+
+try:
+    result = subprocess.run(
+        ["ollama", "run", "llama3", prompt],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+
+    #split output into individual headlines
+    raw_lines = result.stdout.strip().split("\n")
+
+    fake_headlines = []
+    for line in raw_lines:
+        if "(" in line and line.endswith(")"):
+            headline = line[:line.index("(")].strip()
+            explanation = line[line.index("(")+1:-1].strip()
+            fake_headlines.append((headline, explanation))
+
+
+    print("\nGenerated Realistic-Looking Fake Headlines:\n")
+    for idx, (headline, explanation) in enumerate(fake_headlines, 1):
+        print(f"{idx}. {headline} -> {explanation}")
+
+except FileNotFoundError:
+    print("⚠️ Ollama is not installed. Please download from https://ollama.com/download and install it.")
+except subprocess.CalledProcessError as e:
+    print("⚠️ There was an error running Ollama:", e)
+
+
 
 # Real headlines with explanations
 real_headlines = [
@@ -9,14 +60,8 @@ real_headlines = [
     ("John Bolton indicted on 18 counts — full indictment released", "Covered by CNN and Reuters.")
 ]
 
-# AI-generated fake headlines with explanations
-fake_headlines = [
-    ("NASA confirms discovery of second Earth orbiting Alpha Centauri", "No such planet has been confirmed by NASA."),
-    ("Taylor Swift named UN Climate Ambassador", "Taylor Swift has not held any UN ambassador role."),
-    ("Elon Musk announces plan to colonize Mars by 2027 with AI-led crew", "No official Mars colonization timeline has been announced."),
-    ("King Charles to host TikTok influencers at Buckingham Palace", "No such event has been reported."),
-    ("Meta launches brain-to-brain messaging app in beta", "Meta has not released any neural messaging product.")
-]
+#AI-generated fake headlines with explanations
+
 
 def get_headlines(difficulty):
     pool = real_headlines + fake_headlines
@@ -51,7 +96,7 @@ def play_quiz():
             streak += 1
             if streak > 1:
                 print(f"🔥 Streak bonus! {streak} correct in a row.")
-                score += 1
+                
         else:
             print(f"❌ Nope — it was {truth}.")
             print(f"🧠 Explanation: {explanation}")
@@ -68,3 +113,5 @@ def play_quiz():
 
 if __name__ == "__main__":
     play_quiz()
+
+    
