@@ -4,6 +4,12 @@
   "version": "1.0",
   "description": "A simple browser extension example.",
   "permissions": ["storage", "activeTab", "scripting"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.instagram.com/*"]
+      "js": ["Content.js"]
+    }
+    ]
   "action": {
     "default_popup": "popup.html",
     "default_icon": "icon.png"
