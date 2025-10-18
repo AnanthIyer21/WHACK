@@ -18,8 +18,6 @@ document.addEventListener("DOMContentLoaded", () => {
       container.appendChild(img);
     });
   });
-<<<<<<< HEAD
-=======
 
   document.getElementById("sendToBackground").addEventListener("click", () => {
     chrome.storage.local.get(null, async data => {
@@ -46,5 +44,4 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   });
->>>>>>> b1430140fd6d6d7c35fd8bd113c37cb58ea10d12
 });
