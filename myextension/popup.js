@@ -1,6 +1,12 @@
 document.addEventListener("DOMContentLoaded", () => {
   const container = document.getElementById("imageContainer");
 
+  // 🔄 Wake up the service worker
+  chrome.runtime.sendMessage({ action: "ping" }, response => {
+    console.log("Ping response:", response);
+  });
+
+  // 🖼️ Load stored Instagram images
   chrome.storage.local.get(null, data => {
     const keys = Object.keys(data).filter(key => key.startsWith("instagram_img_"));
 
@@ -24,6 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // 🚀 Send images to background for analysis
   document.getElementById("sendToBackground").addEventListener("click", () => {
     chrome.storage.local.get(null, async data => {
       const keys = Object.keys(data).filter(key => key.startsWith("instagram_img_"));

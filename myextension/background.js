@@ -5,6 +5,12 @@ const client = new InferenceClient({ accessToken: HF_TOKEN });
 const DEEPFAKE_MODEL = "umm-maybe/AI-image-detector";
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "ping") {
+    console.log("[Background] Ping received");
+    sendResponse({ success: true });
+    return true;
+  }
+
   if (request.action === "processImage") {
     async function fetchAndAnalyzeImage() {
       const { imageUrl, base64, imgIndex } = request;
@@ -31,7 +37,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           data: imageBlob,
         });
 
-        console.log(`[Background] Hugging Face Result:`, hfResult);
+        console.log(`[Background] Hugging Face Result for image ${imgIndex}:`, hfResult);
 
         if (!hfResult || !Array.isArray(hfResult) || hfResult.length === 0) {
           throw new Error("No prediction returned from Hugging Face.");
@@ -44,7 +50,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
 
       } catch (error) {
-        console.error(`[Background] Error:`, error);
+        console.error(`[Background] Error for image ${imgIndex}:`, error);
         sendResponse({
           success: false,
           imgIndex,
