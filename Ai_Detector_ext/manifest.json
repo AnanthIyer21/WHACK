@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "AI Image Detector for Instagram",
+  "version": "5.0",
+  "description": "Detects AI-generated images on Instagram using a patch-based CNN model.",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://*.instagram.com/*"
+  ],
+  "action": {
+  "default_popup": "popup.html",
+  "default_title": "My ML Detector"
+},
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.instagram.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "tfjs_model/*"
+      ],
+      "matches": [
+        "https://*.instagram.com/*"
+      ]
+    }
+  ]
+}
