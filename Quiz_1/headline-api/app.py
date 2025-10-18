@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 from flask_cors import CORS
 import random
+import subprocess
 
 load_dotenv()
 
@@ -34,14 +35,45 @@ def real_headlines():
 
 @app.route("/headlines/fake")
 def fake_headlines():
-    headlines = [
-        "Scientists discover coffee bean that glows in the dark",
-        "UK Parliament debates mandatory nap breaks for office workers",
-        "NASA confirms moon made of recycled plastic",
-        "Google launches AI that writes breakup texts",
-        "World’s first underwater theme park opens in Iceland"
+
+    num_headlines = 5 #change this to however many you want
+    topics = [
+    "technology", "politics", "space", "sports", "pop culture",
+    "animals", "science", "food", "fashion", "AI", "weather"
     ]
-    return jsonify({"type": "fake", "headlines": headlines})
+    topic = random.choice(topics)
+    prompt = f"""
+    Generate {num_headlines} realistic-sounding fake news headlines about {topic}.
+    Each headline should sound like it could appear in reputable news outlets and include plausible statistics, percentages, or numbers.
+    Do NOT make the headlines humorous or absurd — they should be believable.
+    After each headline, provide a short explanation in parentheses why it is fake.
+    Output each headline on a separate line, in the following format:
+    Headline 1 (Explanation why this is fake)
+    Headline 2 (Explanation why this is fake)
+    ...
+    """
+    try:
+        result = subprocess.run(
+            ["ollama", "run", "llama3", prompt],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+
+        #split output into individual headlines
+        raw_lines = result.stdout.strip().split("\n")
+
+        headlines = []
+        for line in raw_lines:
+            if "(" in line and line.endswith(")"):
+                headline = line[:line.index("(")].strip()
+                explanation = line[line.index("(")+1:-1].strip()
+                headlines.append((headline, explanation))
+        return jsonify({"type": "fake", "headlines": headlines})
+    except FileNotFoundError:
+        print("⚠️ Ollama is not installed. Please download from https://ollama.com/download and install it.")
+    except subprocess.CalledProcessError as e:
+        print("⚠️ There was an error running Ollama:", e)
 
 @app.route("/headlines/mixed")
 def mixed_headlines():
