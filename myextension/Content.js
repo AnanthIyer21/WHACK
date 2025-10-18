@@ -1,4 +1,5 @@
 // Grab all visible images on the Instagram page
+console.log("It is working i think")
 const images = document.querySelectorAll("img");
 
 images.forEach(img => {
