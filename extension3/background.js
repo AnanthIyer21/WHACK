@@ -1,77 +1,90 @@
-import { InferenceClient } from "@huggingface/hub";
+// This is the final version that removes the Hugging Face library import and uses the browser's native 'fetch' to call the API.
+// This code avoids 'import' related errors in the Chrome Service Worker.
 
-// 1. Placeholder for the client instance, which will be initialized with the token later.
-let client = null;
-
-// Define the model ID for deepfake detection (example model ID)
+// Hugging Face Inference API endpoint
+const HF_API_URL = "https://api-inference.huggingface.co/models/";
 const DEEPFAKE_MODEL = "dima806/ai_vs_real_image_detection"; 
 
-// Function to securely retrieve the token and initialize the client
-async function getInferenceClient() {
-    if (client) {
-        return client; // Return existing client if already initialized
-    }
-
-    // Retrieve the token from Chrome storage (this assumes the user has saved it via an options page)
+// 1. Function to retrieve the token (async)
+async function getHfToken() {
+    // Retrieve the token from chrome.storage.
     const tokenResult = await chrome.storage.local.get('hf_token');
-    const HF_TOKEN = tokenResult.hf_token;
+    const token = tokenResult.hf_token;
 
-    if (!HF_TOKEN) {
-        throw new Error("Hugging Face API Token not found. Please set your token in the extension options.");
+    if (!token) {
+        // If the token is missing, log an error message to the console and throw.
+        console.error("Hugging Face API Token not found. Please set your token in the extension options.");
+        // This message will appear in the inspect console.
+        throw new Error("Token Missing");
     }
-    
-    // Initialize the client only after retrieving the token
-    client = new InferenceClient({ accessToken: HF_TOKEN });
-    console.log("[Background] InferenceClient initialized successfully.");
-    return client;
+    return token;
 }
 
-// Listen for messages coming from content.js
+// 2. Core logic to fetch the image URL, send it to the API, and return the result.
+async function fetchAndAnalyzeImage(imageUrl, imgIndex) {
+    const HF_TOKEN = await getHfToken(); // Verify and retrieve the token
+
+    // a. Fetch the image binary data (CORS bypass)
+    const res = await fetch(imageUrl);
+    if (!res.ok) {
+        throw new Error(`Failed to fetch image. HTTP status: ${res.status}`);
+    }
+    const imageBlob = await res.blob();
+    
+    // b. Directly send a fetch request to the Hugging Face Inference API
+    const apiEndpoint = `${HF_API_URL}${DEEPFAKE_MODEL}`;
+
+    const hfResponse = await fetch(apiEndpoint, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${HF_TOKEN}`,
+            // 'Content-Type': imageBlob.type // fetch automatically sets the Content-Type when sending a Blob.
+        },
+        body: imageBlob
+    });
+
+    if (hfResponse.status === 401) {
+        throw new Error("Authentication failed (401). Check your Hugging Face API Token.");
+    }
+
+    if (!hfResponse.ok) {
+        const errorText = await hfResponse.text();
+        throw new Error(`API call failed: ${hfResponse.status} - ${errorText}`);
+    }
+
+    // c. Receive the JSON response
+    const hfResult = await hfResponse.json();
+    
+    console.log(`[Background] Hugging Face Result for image ${imgIndex}:`, hfResult);
+
+    // Return the prediction with the highest score from the image classification results.
+    return hfResult[0]; 
+}
+
+// 3. Listener for messages received from the Content Script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
-    // Check if the message is the one requesting image processing
     if (request.action === "processImage") {
         
-        // Use an async function wrapper since background.js must return true immediately
-        async function fetchAndAnalyzeImage() {
+        async function runAnalysis() {
             const { imageUrl, imgIndex } = request;
-            console.log(`[Background] Processing image ${imgIndex} from URL: ${imageUrl}`);
+            console.log(`[Background] Starting analysis for image ${imgIndex}: ${imageUrl}`);
 
             try {
-                // Get the client instance, which validates the token is present
-                const inferenceClient = await getInferenceClient();
+                // Run the analysis
+                const prediction = await fetchAndAnalyzeImage(imageUrl, imgIndex);
 
-                // 2. Receive Image URL from content.js and perform secure fetch
-                const res = await fetch(imageUrl);
-                
-                if (!res.ok) {
-                    throw new Error(`Failed to fetch image. HTTP status: ${res.status}`);
-                }
-                
-                // Get the image binary data (Blob)
-                const imageBlob = await res.blob();
-                console.log(`[Background] Successfully fetched image. Size: ${imageBlob.size} bytes`);
-
-
-                // 3. Run Hugging Face API inference
-                const hfResult = await inferenceClient.imageClassification({
-                    model: dima806/ai_vs_real_image_detection,
-                    data: imageBlob, 
-                });
-                
-                console.log(`[Background] Hugging Face Result:`, hfResult);
-
-                // 4. Send the result back to Content.js
-                // We send the first prediction result (highest confidence)
+                // Return the result
                 sendResponse({ 
                     success: true, 
                     imgIndex: imgIndex,
-                    prediction: hfResult[0] 
+                    prediction: prediction 
                 });
 
             } catch (error) {
-                console.error("[Background] Error during processing or API call:", error);
-                // Send an error message back
+                console.error("[Background] Error during analysis:", error);
+                
+                // Return the error message
                 sendResponse({ 
                     success: false, 
                     imgIndex: imgIndex,
@@ -80,8 +93,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             }
         }
 
-        fetchAndAnalyzeImage();
-        // Return true to indicate that sendResponse will be called asynchronously
+        runAnalysis();
+        // Return true to indicate that sendResponse will be called asynchronously.
         return true; 
     }
 });
