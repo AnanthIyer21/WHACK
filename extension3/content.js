@@ -4,6 +4,13 @@ const postImages = document.querySelectorAll('img');
 // Store a map to track which image is being processed.
 const processingMap = new Map();
 
+// 🚨 정확도 개선을 위한 임계값 설정: 
+// 모델이 80% 이상의 신뢰도를 가질 때만 FAKE로 최종 판정합니다.
+const FAKE_THRESHOLD = 0.8; 
+
+// 🚨 API 오류를 발생시키는 1x1 투명 GIF 자리 표시자 URL
+const TRIVIAL_PLACEHOLDER = "data:image/gif;base64,R0lGODlhAQABAIAAAP///////yH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+
 // Use a mutation observer to handle dynamically loaded content (important for scrolling feeds like Instagram)
 const observer = new MutationObserver(mutations => {
     mutations.forEach(mutation => {
@@ -36,8 +43,8 @@ function checkAndAnalyzeImages(rootNode) {
         const imageKey = imageUrl + img.width + img.height; 
 
         // Filter for large post images that are likely actual content
-        // 🚨 수정됨: 'imageUrl.includes("scontent")' 인스타그램 전용 필터를 제거하여 모든 사이트에서 작동하도록 일반화합니다.
-        if (img.width > 250 && !processingMap.has(imageKey)) {
+        // 🚨 수정된 필터: 이미지 URL이 1x1 투명 GIF가 아닐 경우에만 처리합니다.
+        if (img.width > 250 && !processingMap.has(imageKey) && imageUrl !== TRIVIAL_PLACEHOLDER) {
             
             // Mark as processing immediately to prevent re-analysis
             processingMap.set(imageKey, true);
@@ -111,10 +118,16 @@ function checkAndAnalyzeImages(rootNode) {
                     if (prediction) {
                         console.log(`[Content.js] Image ${imageKey} predicted as: ${prediction.label} (${(prediction.score * 100).toFixed(2)}%)`);
                         
-                        // Determine color and label
-                        const isFake = prediction.label.toLowerCase().includes('fake') || prediction.label.toLowerCase().includes('manipulated');
+                        // Determine if it is fake based on label AND the defined threshold
+                        const isLabelFake = prediction.label.toLowerCase().includes('fake') || prediction.label.toLowerCase().includes('manipulated');
+                        
+                        // 🚨 수정된 판정 로직: 레이블이 FAKE이고 점수가 임계값(0.8) 이상일 때만 FAKE로 간주합니다.
+                        const isFake = isLabelFake && prediction.score >= FAKE_THRESHOLD; 
+                        
                         const badgeColor = isFake ? 'red' : '#1abc9c'; // Green for Real, Red for Fake
-                        const badgeText = isFake ? `FAKE (${(prediction.score * 100).toFixed(0)}%)` : `REAL (${(prediction.score * 100).toFixed(0)}%)`;
+                        const badgeText = isFake 
+                            ? `FAKE (${(prediction.score * 100).toFixed(0)}%)` 
+                            : `REAL (${(prediction.score * 100).toFixed(0)}%)`;
 
                         // Create a result badge
                         const resultBadge = document.createElement("div");
@@ -138,7 +151,7 @@ function checkAndAnalyzeImages(rootNode) {
                     }
                     
                 } else if (response && response.error) {
-                    console.error(`[Content.js] Error for image ${imageKey}:`, response.error);
+                    console.error(`[Content.js] Error for image ${imageKey}: API analysis failed: ${response.error}`);
                     
                     // Display error message badge
                     const errorBadge = document.createElement("div");
