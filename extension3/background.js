@@ -1,6 +1,6 @@
 // Hugging Face API Inference Endpoint Configuration
 const HF_API_URL = 'https://api-inference.huggingface.co/models/';
-const DEEPFAKE_MODEL = 'google/vit-base-patch16-224';
+const DEEPFAKE_MODEL = 'CodyNeo/glass_fine_tuned_deepfake_detection';
 
 /**
  * Retrieves the Hugging Face API token from local storage.
