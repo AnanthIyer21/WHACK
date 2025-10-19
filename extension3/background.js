@@ -1,6 +1,6 @@
 // Hugging Face API Inference Endpoint Configuration
 const HF_API_URL = 'https://api-inference.huggingface.co/models/';
-const DEEPFAKE_MODEL = 'Hemg/AI-VS-REAL-IMAGE-DETECTION';
+const DEEPFAKE_MODEL = 'prithivMLmods/AI-vs-Deepfake-vs-Real-v2.0';
 
 /**
  * Retrieves the Hugging Face API token from local storage.
