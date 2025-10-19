@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Image Detector</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 400px;
+      min-height: 500px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    h1 {
+      color: white;
+      font-size: 24px;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .subtitle {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .drop-zone {
+      background: white;
+      border: 3px dashed #cbd5e0;
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .drop-zone:hover {
+      border-color: #667eea;
+      background: #f7fafc;
+    }
+
+    .drop-zone.drag-over {
+      border-color: #667eea;
+      background: #edf2f7;
+      transform: scale(1.02);
+    }
+
+    .upload-icon {
+      width: 64px;
+      height: 64px;
+      color: #a0aec0;
+      margin-bottom: 16px;
+    }
+
+    .drop-text {
+      font-size: 16px;
+      color: #4a5568;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .or-text {
+      color: #a0aec0;
+      font-size: 14px;
+      margin: 12px 0;
+    }
+
+    .browse-btn {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .browse-btn:hover {
+      background: #5a67d8;
+    }
+
+    .preview {
+      position: relative;
+      margin-top: 20px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: white;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .preview img {
+      width: 100%;
+      display: block;
+      max-height: 300px;
+      object-fit: contain;
+    }
+
+    .clear-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 24px;
+      line-height: 1;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .clear-btn:hover {
+      background: rgba(0, 0, 0, 0.8);
+    }
+
+    .loading {
+      background: white;
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid #e2e8f0;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading p {
+      color: #4a5568;
+      font-size: 14px;
+    }
+
+    .result {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .result-label {
+      font-size: 28px;
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 8px;
+    }
+
+    .result-label.fake {
+      background: #fed7d7;
+      color: #c53030;
+    }
+
+    .result-label.real {
+      background: #c6f6d5;
+      color: #2f855a;
+    }
+
+    .confidence {
+      font-size: 24px;
+      font-weight: 600;
+      color: #4a5568;
+    }
+
+    .details {
+      margin-bottom: 16px;
+    }
+
+    .details p {
+      font-size: 14px;
+      color: #4a5568;
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+
+    .details strong {
+      color: #2d3748;
+    }
+
+    .stats {
+      background: #f7fafc;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 12px;
+    }
+
+    .stat {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 13px;
+    }
+
+    .stat-label {
+      color: #718096;
+    }
+
+    .stat-value {
+      font-weight: 600;
+      color: #2d3748;
+    }
+
+    .analyze-btn {
+      width: 100%;
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .analyze-btn:hover {
+      background: #5a67d8;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>AI Image Detector</h1>
+    <p class="subtitle">Drag & drop or click to upload an image</p>
+
+    <div id="dropZone" class="drop-zone">
+      <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="17 8 12 3 7 8"></polyline>
+        <line x1="12" y1="3" x2="12" y2="15"></line>
+      </svg>
+      <p class="drop-text">Drop image here</p>
+      <p class="or-text">or</p>
+      <button id="browseBtn" class="browse-btn">Browse Files</button>
+      <input type="file" id="fileInput" accept="image/*" hidden>
+    </div>
+
+    <div id="preview" class="preview hidden">
+      <img id="previewImg" alt="Preview">
+      <button id="clearBtn" class="clear-btn">×</button>
+    </div>
+
+    <div id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <p>Analyzing image...</p>
+    </div>
+
+    <div id="result" class="result hidden">
+      <div class="result-header">
+        <span class="result-label" id="resultLabel">FAKE</span>
+        <span class="confidence" id="confidence">95%</span>
+      </div>
+      <div class="details">
+        <p><strong>Analysis:</strong></p>
+        <p id="detailText"></p>
+        <div class="stats">
+          <div class="stat">
+            <span class="stat-label">Tiles Analyzed:</span>
+            <span class="stat-value" id="totalTiles">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Fake Tiles:</span>
+            <span class="stat-value" id="fakeTiles">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Max Fake Confidence:</span>
+            <span class="stat-value" id="maxFake">-</span>
+          </div>
+        </div>
+      </div>
+      <button id="analyzeAnother" class="analyze-btn">Analyze Another Image</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Image Detector - Debug</title>
+  <style>
+    body {
+      width: 400px;
+      min-height: 500px;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .test {
+      background: white;
+      color: black;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>AI Image Detector</h1>
+  <div class="test">
+    <p>✓ HTML loaded successfully</p>
+  </div>
+  <div class="test" id="cssTest">
+    CSS loading...
+  </div>
+  <div class="test" id="jsTest">
+    JavaScript loading...
+  </div>
+  <div class="test" id="tfTest">
+    TensorFlow.js loading...
+  </div>
+
+  <script>
+    document.getElementById('cssTest').innerHTML = '<p>✓ CSS loaded successfully</p>';
+    document.getElementById('jsTest').innerHTML = '<p>✓ JavaScript loaded successfully</p>';
+    
+    // Load TensorFlow.js
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js';
+    script.onload = () => {
+      document.getElementById('tfTest').innerHTML = '<p>✓ TensorFlow.js loaded: ' + (typeof tf !== 'undefined') + '</p>';
+    };
+    script.onerror = () => {
+      document.getElementById('tfTest').innerHTML = '<p>✗ TensorFlow.js failed to load</p>';
+    };
+    document.head.appendChild(script);
+  </script>
+</body>
+</html>
