@@ -5,15 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fake or Real?</title>
   <link rel="stylesheet" href="/static/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>🧠 Fake or Real?</h1>
-      <p class="subtitle">Can you spot the AI-generated headline?</p>
-    </header>
+  <nav>
+    <h1>🧠 Fake or Real?</h1>
+    <button id="theme-toggle">🌗</button>
+  </nav>
 
-    <main>
+  <div class="container">
+    <p class="subtitle">Can you spot the AI-generated headline?</p>
+
+    <div class="difficulty">
+      <p>Choose difficulty:</p>
+      <div class="difficulty-buttons">
+        <button class="diff-btn active" data-level="easy">Easy</button>
+        <button class="diff-btn" data-level="medium">Medium</button>
+        <button class="diff-btn" data-level="hard">Hard</button>
+      </div>
+      <button class="start" onclick="startQuiz()">Start Quiz</button>
+    </div>
+
+    <div id="quiz-area" style="display:none;">
+      <div class="progress-container">
+        <div id="progress-bar" class="progress-bar"></div>
+      </div>
+
       <div id="headline" class="headline">Loading...</div>
 
       <div class="buttons">
@@ -22,9 +39,16 @@
       </div>
 
       <div id="result" class="result"></div>
+      <div id="explanation" class="explanation"></div>
 
       <button class="next" onclick="nextHeadline()">Next Headline</button>
-    </main>
+
+      <div class="score">
+        <p>✅ Correct: <span id="correct">0</span></p>
+        <p>❌ Incorrect: <span id="incorrect">0</span></p>
+        <p>🔥 Streak: <span id="streak">0</span></p>
+      </div>
+    </div>
   </div>
 
   <script src="/static/script.js"></script>
