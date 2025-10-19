@@ -36,7 +36,8 @@ function checkAndAnalyzeImages(rootNode) {
         const imageKey = imageUrl + img.width + img.height; 
 
         // Filter for large post images that are likely actual content
-        if (img.width > 300 && imageUrl.includes("scontent") && !processingMap.has(imageKey)) {
+        // 🚨 수정됨: 'imageUrl.includes("scontent")' 인스타그램 전용 필터를 제거하여 모든 사이트에서 작동하도록 일반화합니다.
+        if (img.width > 250 && !processingMap.has(imageKey)) {
             
             // Mark as processing immediately to prevent re-analysis
             processingMap.set(imageKey, true);
