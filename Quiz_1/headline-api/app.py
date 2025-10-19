@@ -44,8 +44,7 @@ def fake_headlines():
     topic = random.choice(topics)
     prompt = f"""
     Generate {num_headlines} realistic-sounding fake news headlines about {topic}.
-    Each headline should sound like it could appear in reputable news outlets and include plausible statistics, percentages, or numbers.
-    Do NOT make the headlines humorous or absurd — they should be believable.
+    Each headline should sound like it could appear in real news media, but it is fabricated.
     After each headline, provide a short explanation in parentheses why it is fake.
     Output each headline on a separate line, in the following format:
     Headline 1 (Explanation why this is fake)
