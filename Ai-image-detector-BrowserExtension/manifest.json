@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "AI Image Detector",
+  "version": "1.0.0",
+  "description": "Detect if an image is AI-generated or real using machine learning",
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "permissions": ["storage"],
+  "web_accessible_resources": [
+    {
+      "resources": ["model/*.bin", "model/*.json"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

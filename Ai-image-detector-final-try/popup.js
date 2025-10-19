@@ -12,6 +12,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentImage = null;
 
+  // NEW: Check for pending image from context menu
+  chrome.storage.local.get(['pendingImageUrl', 'timestamp'], (result) => {
+    if (result.pendingImageUrl) {
+      // Only process if clicked within last 5 seconds
+      if (Date.now() - result.timestamp < 5000) {
+        loadImageFromUrl(result.pendingImageUrl);
+      }
+      // Clear the pending data
+      chrome.storage.local.remove(['pendingImageUrl', 'timestamp']);
+    }
+  });
+
+  // NEW: Function to load image from URL
+  function loadImageFromUrl(url) {
+    // Show loading state
+    dropZone.classList.add('hidden');
+    loading.classList.remove('hidden');
+    
+    fetch(url)
+      .then(res => res.blob())
+      .then(blob => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          previewImg.src = e.target.result;
+          currentImage = e.target.result;
+          
+          loading.classList.add('hidden');
+          preview.classList.remove('hidden');
+          
+          // Wait for image to load then analyze
+          previewImg.onload = () => {
+            analyzeImage();
+          };
+        };
+        reader.readAsDataURL(blob);
+      })
+      .catch(err => {
+        console.error('Error loading image from URL:', err);
+        alert('Failed to load image from webpage. The image may be protected or from a different domain.');
+        resetUI();
+      });
+  }
+
   // Browse button click
   browseBtn.addEventListener('click', (e) => {
     e.stopPropagation();
